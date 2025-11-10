@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What to Watch Suggestor</title>
+    <!-- 1. Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Using Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+        }
+        /* Custom transition for the result card */
+        #result-card {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+        .fade-in {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full">
+        
+        <!-- Main Application Card -->
+        <div class="bg-gray-800 shadow-2xl rounded-lg p-6 md:p-8">
+
+            <!-- Filter Section -->
+            <div id="filter-section">
+                <h1 class="text-3xl font-bold text-center mb-2 text-blue-400">What to Watch?</h1>
+                <p class="text-center text-gray-400 mb-6">Get a random suggestion based on your mood.</p>
+                
+                <div class="space-y-4">
+                    <!-- Genre Selector -->
+                    <div>
+                        <label for="genre" class="block text-sm font-medium text-gray-300 mb-1">Genre</label>
+                        <select id="genre" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>Any Genre</option>
+                            <option>Sci-Fi</option>
+                            <option>Comedy</option>
+                            <option>Thriller</option>
+                            <option>Drama</option>
+                            <option>Fantasy</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Mood Selector -->
+                    <div>
+                        <label for="mood" class="block text-sm font-medium text-gray-300 mb-1">Mood</label>
+                        <select id="mood" class="w-full bg-gray-700 border border-gray-600 text-white rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option>Any Mood</option>
+                            <option>Exciting</option>
+                            <option>Heartwarming</option>
+                            <option>Mind-Bending</option>
+                            <option>Funny</option>
+                            <option>Intense</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Find Button -->
+                <button id="find-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg mt-8 transition duration-300 shadow-lg">
+                    Find Suggestion
+                </button>
+            </div>
+
+            <!-- Result Section (Initially Hidden) -->
+            <div id="result-section" class="hidden">
+                <h2 class="text-2xl font-bold text-center mb-4 text-blue-400">How about this?</h2>
+
+                <!-- Result Card -->
+                <div id="result-card" class="bg-gray-700 rounded-lg overflow-hidden shadow-lg opacity-0 transform -translate-y-4">
+                    <img id="result-image" src="https://placehold.co/600x400/1F2937/7DD3FC?text=Suggestion" alt="Suggestion Poster" class="w-full h-48 object-cover">
+                    <div class="p-6">
+                        <h3 id="result-title" class="text-xl font-bold mb-2"></h3>
+                        <p id="result-description" class="text-gray-300 mb-4"></p>
+                        <div class="flex flex-wrap gap-2">
+                            <span id="result-genre" class="text-xs font-semibold bg-blue-200 text-blue-800 px-3 py-1 rounded-full"></span>
+                            <span id="result-mood" class="text-xs font-semibold bg-purple-200 text-purple-800 px-3 py-1 rounded-full"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- No Results Message (Initially Hidden) -->
+                <div id="no-results" class="hidden text-center text-gray-400 p-8">
+                    <p>Womp, womp... No matches found for that specific combo. Try broadening your search!</p>
+                </div>
+
+                <!-- Try Again Button -->
+                <button id="try-again-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg mt-6 transition duration-300">
+                    Try Again
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- DATABASE ---
+        // A simple in-app database of movies and shows
+        const mediaData = [
+            { id: 1, title: 'Cyberscape', description: 'A hacker discovers a parallel digital world.', genre: 'Sci-Fi', mood: 'Mind-Bending', img: '600x400/3B82F6/FFFFFF?text=Cyberscape' },
+            { id: 2, title: 'The Last Laugh', description: 'A retired comedian goes on one last road trip.', genre: 'Comedy', mood: 'Heartwarming', img: '600x400/F59E0B/FFFFFF?text=The+Last+Laugh' },
+            { id: 3, title: 'Echo Creek', description: 'A detective investigates a disappearance in a town where no one lies.', genre: 'Thriller', mood: 'Intense', img: '600x400/EF4444/FFFFFF?text=Echo+Creek' },
+            { id: 4, title: 'Stellar Odyssey', description: 'Explorers search for a new habitable planet.', genre: 'Sci-Fi', mood: 'Exciting', img: '600x400/3B82F6/FFFFFF?text=Stellar+Odyssey' },
+            { id: 5, title: 'The King\'s Fool', description: 'A court jester accidentally becomes a spy.', genre: 'Comedy', mood: 'Funny', img: '600x400/F59E0B/FFFFFF?text=The+King\'s+Fool' },
+            { id: 6, title: 'The Archivist', description: 'A historian must protect a forbidden library.', genre: 'Drama', mood: 'Intense', img: '600x400/6B7280/FFFFFF?text=The+Archivist' },
+            { id: 7, title: 'Paradox Run', description: 'A scientist gets stuck in a time loop.', genre: 'Sci-Fi', mood: 'Mind-Bending', img: '600x400/3B82F6/FFFFFF?text=Paradox+Run' },
+            { id: 8, title: 'Glimmerwick', description: 'A young wizard apprentices in a magical village.', genre: 'Fantasy', mood: 'Heartwarming', img: '600x400/A855F7/FFFFFF?text=Glimmerwick' },
+            { id: 9, title: 'Red Planet Down', description: 'A Mars colony fights for survival after a catastrophe.', genre: 'Sci-Fi', mood: 'Intense', img: '600x400/EF4444/FFFFFF?text=Red+Planet+Down' },
+            { id: 10, title: 'The Baker\'s Son', description: 'A baker inherits a small, magical bakery.', genre: 'Fantasy', mood: 'Heartwarming', img: '600x400/A855F7/FFFFFF?text=The+Baker\'s+Son' },
+            { id: 11, title: 'Corporate Chaos', description: 'Two rival interns try to prank each other.', genre: 'Comedy', mood: 'Funny', img: '600x400/F59E0B/FFFFFF?text=Corporate+Chaos' },
+            { id: 12, title: 'The Silent Witness', description: 'A lawyer must defend a client who cannot speak.', genre: 'Drama', mood: 'Intense', img: '600x400/6B7280/FFFFFF?text=The+Silent+Witness' },
+            { id: 13, title: 'The Void Jumper', description: 'A smuggler with a teleporting ship.', genre: 'Sci-Fi', mood: 'Exciting', img: '600x400/3B82F6/FFFFFF?text=The+Void+Jumper' },
+            { id: 14, title: 'Midnight Whispers', description: 'A small town is haunted by a dark secret.', genre: 'Thriller', mood: 'Intense', img: '600x400/EF4444/FFFFFF?text=Midnight+Whispers' },
+            { id: 15, title: 'Dragon\'s Path', description: 'A young warrior must tame a legendary beast.', genre: 'Fantasy', mood: 'Exciting', img: '600x400/A855F7/FFFFFF?text=Dragon\'s+Path' }
+        ];
+
+        // --- DOM ELEMENTS ---
+        const filterSection = document.getElementById('filter-section');
+        const resultSection = document.getElementById('result-section');
+        const findBtn = document.getElementById('find-btn');
+        const tryAgainBtn = document.getElementById('try-again-btn');
+        const noResultsEl = document.getElementById('no-results');
+        const resultCardEl = document.getElementById('result-card');
+
+        const genreSelect = document.getElementById('genre');
+        const moodSelect = document.getElementById('mood');
+
+        const resultImage = document.getElementById('result-image');
+        const resultTitle = document.getElementById('result-title');
+        const resultDescription = document.getElementById('result-description');
+        const resultGenre = document.getElementById('result-genre');
+        const resultMood = document.getElementById('result-mood');
+
+        // --- EVENT LISTENERS ---
+        
+        // Find Suggestion Button Click
+        findBtn.addEventListener('click', () => {
+            const selectedGenre = genreSelect.value;
+            const selectedMood = moodSelect.value;
+
+            // Filter the data
+            const filteredMedia = mediaData.filter(item => {
+                const genreMatch = (selectedGenre === 'Any Genre') || (item.genre === selectedGenre);
+                const moodMatch = (selectedMood === 'Any Mood') || (item.mood === selectedMood);
+                return genreMatch && moodMatch;
+            });
+
+            // Hide the filters and show the results section
+            filterSection.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+
+            if (filteredMedia.length === 0) {
+                // No results found
+                noResultsEl.classList.remove('hidden');
+                resultCardEl.classList.add('hidden');
+            } else {
+                // Get a random suggestion
+                const randomIndex = Math.floor(Math.random() * filteredMedia.length);
+                const suggestion = filteredMedia[randomIndex];
+
+                // Populate the card
+                resultImage.src = `https://placehold.co/${suggestion.img}`;
+                resultTitle.textContent = suggestion.title;
+                resultDescription.textContent = suggestion.description;
+                resultGenre.textContent = suggestion.genre;
+                resultMood.textContent = suggestion.mood;
+
+                // Show the card
+                noResultsEl.classList.add('hidden');
+                resultCardEl.classList.remove('hidden');
+                
+                // Trigger the fade-in animation
+                // Use a tiny timeout to allow the browser to see the 'hidden' class removed
+                setTimeout(() => {
+                    resultCardEl.classList.add('fade-in');
+                }, 50);
+            }
+        });
+
+        // Try Again Button Click
+        tryAgainBtn.addEventListener('click', () => {
+            // Hide results and show filters
+            resultSection.classList.add('hidden');
+            filterSection.classList.remove('hidden');
+
+            // Reset the card animation
+            resultCardEl.classList.remove('fade-in');
+        });
+
+    </script>
+</body>
+</html>
